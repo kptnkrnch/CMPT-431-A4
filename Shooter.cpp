@@ -24,7 +24,10 @@ void ShooterAction(int rate,Color PlayerColor) {
      while(1) {
      	int lane = rand() % 5;
      	usleep(1000000/rate);
-     	Gallery->Set(lane, PlayerColor);
+		Color check = Gallery->Get(lane);
+		if (check == white) {
+			Gallery->Set(lane, PlayerColor);
+		}
      }
      
      //Gallery->Set(0,red);
@@ -77,8 +80,8 @@ int main(int argc, char** argv)
 
 
 
-    ths.push_back(std::thread(&ShooterAction,1,red));
-    ths.push_back(std::thread(&ShooterAction,1,blue));
+    ths.push_back(std::thread(&ShooterAction,49,red));
+    ths.push_back(std::thread(&ShooterAction,50,blue));
     ths.push_back(std::thread(&Cleaner));
     ths.push_back(std::thread(&Printer,5));
 

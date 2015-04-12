@@ -8,25 +8,28 @@ int counter;
 
 void ShooterAction() {
 
- int nretries=0;
- int status;
+	int nretries=0;
+	int retry = 1;
+	int status;
+	while (retry) {
+		if ((status = _xbegin ()) == _XBEGIN_STARTED) {
+			retry = 0;
+			for (int i = 0; i < 1000000; ++i)
+			{
+				counter++;
+				/* code */
+			}
 
- if ((status = _xbegin ()) == _XBEGIN_STARTED) {
 
-    for (int i = 0; i < 100; ++i)
-    {
-                counter++;
-        /* code */
-    }
+			_xend ();
+		}
+		else {
+			retry = 1;
+			nretries++;
+		}
+	}
 
-   
-        _xend ();
- }
- else {
-        nretries++;
-    }
-
-    std::cout<<nretries;
+	std::cout<<nretries << std::endl;
 }
 
 
@@ -46,7 +49,7 @@ int main()
         th.join();
 
 
-        std::cout << counter ; 
+        std::cout << counter << std::endl; 
 
     }
 
