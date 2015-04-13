@@ -3,13 +3,17 @@
 #include <unistd.h>
 #include <cstdlib>
 #include "Lanes.h"
+#include "Rogue.h"
+#include "helper.h"
 #include <vector>
+#include <mutex>
 
 Lanes* Gallery;
 int nlanes;
 using namespace std;
 
-
+mutex master_lock;
+mutex * lane_lock;
 
 void ShooterAction(int rate,Color PlayerColor) {
 
@@ -22,7 +26,7 @@ void ShooterAction(int rate,Color PlayerColor) {
      
      
      while(1) {
-     	int lane = rand() % 5;
+     	int lane = rand() % LANE_COUNT;
      	usleep(1000000/rate);
 		Color check = Gallery->Get(lane);
 		if (check == white) {
@@ -60,6 +64,7 @@ void Printer(int rate) {
    while(1)
    {
        sleep(1);
+	   //usleep(1000000/200000);
        Gallery->Print();
        cout<<Gallery->Count();
 
@@ -74,17 +79,31 @@ int main(int argc, char** argv)
 
     std::vector<thread> ths;
 
-
-    Gallery = new Lanes(5);
+	AtomicLock * l = new AtomicLock();
+    Gallery = new Lanes(LANE_COUNT);
     //    std::thread RedShooterT,BlueShooterT,CleanerT,PrinterT;
 
+	RogueCoarse red_shooter(red, 1, l); 
+	RogueCoarse blue_shooter(blue, 1, l);
+	/*RogueCoarse red_shooter2(red, 1000000, &master_lock); 
+	RogueCoarse blue_shooter2(blue, 1000000, &master_lock);
+	RogueCoarse red_shooter3(red, 1000000, &master_lock); 
+	RogueCoarse blue_shooter3(blue, 1000000, &master_lock);*/
+	RogueCoarseCleaner cleaner(l);
 
+    //ths.push_back(std::thread(&ShooterAction,49,red));
+    //ths.push_back(std::thread(&ShooterAction,50,blue));
+    //ths.push_back(std::thread(&Cleaner));
+	
+	ths.push_back(std::thread(&RogueCoarse::shoot, red_shooter));
+    ths.push_back(std::thread(&RogueCoarse::shoot, blue_shooter));
+	/*ths.push_back(std::thread(&RogueCoarse::shoot, red_shooter2));
+    ths.push_back(std::thread(&RogueCoarse::shoot, blue_shooter2));
+	ths.push_back(std::thread(&RogueCoarse::shoot, red_shooter3));
+    ths.push_back(std::thread(&RogueCoarse::shoot, blue_shooter3));*/
+	ths.push_back(std::thread(&RogueCoarseCleaner::clean, cleaner));
 
-    ths.push_back(std::thread(&ShooterAction,49,red));
-    ths.push_back(std::thread(&ShooterAction,50,blue));
-    ths.push_back(std::thread(&Cleaner));
-    ths.push_back(std::thread(&Printer,5));
-
+	ths.push_back(std::thread(&Printer,5));
 
     // Join with threads
     //    RedShooterT.join();

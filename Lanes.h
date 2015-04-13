@@ -12,6 +12,8 @@
 #include <ostream>
 #include <assert.h>
 
+#define LANE_COUNT 8
+
 
 /**
  * Thanks to Skurmedel for this code.
@@ -152,7 +154,7 @@ void Lanes::Print()
 {
   Colors::Modifier reds(Colors::BG_RED);
     Colors::Modifier def(Colors::BG_DEFAULT);
-    Colors::Modifier blues(Colors::FG_BLUE);
+    Colors::Modifier blues(Colors::BG_BLUE);
     Colors::Modifier greens(Colors::BG_GREEN);
 
     for (int i = 0; i < nlanes; i++)
