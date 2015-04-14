@@ -80,11 +80,12 @@ int main(int argc, char** argv)
     std::vector<thread> ths;
 
 	AtomicLock * l = new AtomicLock();
+	AtomicBarrier barrier(2);
     Gallery = new Lanes(LANE_COUNT);
     //    std::thread RedShooterT,BlueShooterT,CleanerT,PrinterT;
 
-	RogueCoarse red_shooter(red, 1, l); 
-	RogueCoarse blue_shooter(blue, 1, l);
+	RogueCoarse red_shooter(red, 1000000, l, &barrier); 
+	RogueCoarse blue_shooter(blue, 1000000, l, &barrier);
 	/*RogueCoarse red_shooter2(red, 1000000, &master_lock); 
 	RogueCoarse blue_shooter2(blue, 1000000, &master_lock);
 	RogueCoarse red_shooter3(red, 1000000, &master_lock); 

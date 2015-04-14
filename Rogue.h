@@ -46,16 +46,19 @@ public:
 	int success; // Rate/s of lanes shot by ROGUE   
 	std::mutex * lock;
 	AtomicLock * l;
+	AtomicBarrier * barrier;
 
-	RogueCoarse(Color color, int rate, AtomicLock * _l) {
+	RogueCoarse(Color color, int rate, AtomicLock * _l, AtomicBarrier * _barrier) {
 		bullet = color;
 		shotRate = rate;
 		success = 0;
 		l = _l;
+		barrier = _barrier;
 	}
 	
 	void shoot() {
 		while(1) {
+			barrier->barrier();
 			int lane = rand() % LANE_COUNT;
 			usleep(1000000/shotRate);
 			Color check = Gallery->Get(lane);
