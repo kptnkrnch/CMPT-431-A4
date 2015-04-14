@@ -79,18 +79,19 @@ int main(int argc, char** argv)
 
     std::vector<thread> ths;
 
-	AtomicLock * l = new AtomicLock();
+	AtomicLock * lock = new AtomicLock();
 	AtomicLock * locks = new AtomicLock[LANE_COUNT];
+	HLELock * hle_lock = new HLELock();
 	AtomicBarrier barrier(2);
 	
     Gallery = new Lanes(LANE_COUNT);
     //    std::thread RedShooterT,BlueShooterT,CleanerT,PrinterT;
 
-	RogueCoarse red_coarse_shooter(red, 1, l, &barrier); 
-	RogueCoarse blue_coarse_shooter(blue, 1, l, &barrier);
+	RogueCoarse red_coarse_shooter(red, 1, lock, &barrier); 
+	RogueCoarse blue_coarse_shooter(blue, 1, lock, &barrier);
 	
-	RogueCoarse2 red_coarse2_shooter(red, 1, l, &barrier); 
-	RogueCoarse2 blue_coarse2_shooter(blue, 1, l, &barrier);
+	RogueCoarse2 red_coarse2_shooter(red, 1, lock, &barrier); 
+	RogueCoarse2 blue_coarse2_shooter(blue, 1, lock, &barrier);
 	
 	RogueFine red_fine_shooter(red, 1, locks, &barrier);
 	RogueFine blue_fine_shooter(blue, 1, locks, &barrier);
@@ -98,8 +99,15 @@ int main(int argc, char** argv)
 	RogueFine2 red_fine2_shooter(red, 1, locks, &barrier);
 	RogueFine2 blue_fine2_shooter(blue, 1, locks, &barrier);
 	
-	RogueCoarseCleaner cleaner(l);
+	RogueTM red_TM_shooter(red, 1, hle_lock, lock, &barrier);
+	RogueTM blue_TM_shooter(blue, 1, hle_lock, lock, &barrier);
+	
+	RogueTM2 red_TM2_shooter(red, 1, hle_lock, lock, &barrier);
+	RogueTM2 blue_TM2_shooter(blue, 1, hle_lock, lock, &barrier);
+	
+	RogueCoarseCleaner cleaner(lock);
 	RogueFineCleaner fine_cleaner(locks);
+	RogueTMCleaner TM_cleaner(hle_lock, lock);
 
     //ths.push_back(std::thread(&ShooterAction,49,red));
     //ths.push_back(std::thread(&ShooterAction,50,blue));
@@ -120,6 +128,14 @@ int main(int argc, char** argv)
 	//ths.push_back(std::thread(&RogueFine2::shoot, red_fine2_shooter));
     //ths.push_back(std::thread(&RogueFine2::shoot, blue_fine2_shooter));
 	//ths.push_back(std::thread(&RogueFineCleaner::clean, fine_cleaner));
+	
+	//ths.push_back(std::thread(&RogueTM::HLEShoot, red_TM_shooter));
+    //ths.push_back(std::thread(&RogueTM::HLEShoot, blue_TM_shooter));
+	//ths.push_back(std::thread(&RogueTMCleaner::HLEClean, TM_cleaner));
+	
+	ths.push_back(std::thread(&RogueTM2::HLEShoot, red_TM2_shooter));
+    ths.push_back(std::thread(&RogueTM2::HLEShoot, blue_TM2_shooter));
+	ths.push_back(std::thread(&RogueTMCleaner::HLEClean, TM_cleaner));
 
 	ths.push_back(std::thread(&Printer,5));
 

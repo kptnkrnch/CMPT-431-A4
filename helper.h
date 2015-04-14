@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <condition_variable>
 #include <mutex>
+#include <immintrin.h>
 #include <iostream>
 
 class AtomicLock {
@@ -80,6 +81,36 @@ public:
 			//lock->release();
 		}
 		lock->unlock();
+	}
+};
+
+class HLELock {
+private:
+	int latch;
+public:
+	HLELock() {
+		latch = 0;
+	}
+	
+	void lock() {
+		while (__atomic_exchange_n(&latch, 1, __ATOMIC_ACQUIRE|__ATOMIC_HLE_ACQUIRE) != 0) {
+			int val;
+
+			/* Wait for lock to become free again before retrying. */
+			do {
+
+				_mm_pause();
+
+				/* Abort speculation */
+				__atomic_load(&latch, &val, __ATOMIC_CONSUME);
+
+			} while (val == 1);
+		}
+	}
+	
+	void unlock() {
+		int val = 0;
+		__atomic_load(&val, &latch, __ATOMIC_CONSUME);
 	}
 };
 
