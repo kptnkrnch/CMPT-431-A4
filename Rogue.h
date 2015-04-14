@@ -130,12 +130,55 @@ public:
 
 class RogueCoarse2 {
 public:
-	RogueCoarse2(int color, int rate);
-
 	/* data */
-	Color Bullet; // The bullet color to paint the lane
-	int ShotRate; // Rate/s required to shoot the lanes
-	int Success; // Rate/s of lanes shot by ROGUE
+	Color bullet; // The bullet color to paint the lane
+	int shotRate; // Rate/s required to shoot the lanes
+	int success; // Rate/s of lanes shot by ROGUE   
+	AtomicLock * lock;
+	AtomicBarrier * barrier;
+
+	RogueCoarse2(Color color, int rate, AtomicLock * _lock, AtomicBarrier * _barrier) {
+		bullet = color;
+		shotRate = rate;
+		success = 0;
+		lock = _lock;
+		barrier = _barrier;
+	}
+	
+	void shoot() {
+		barrier->barrier();
+		while(1) {
+			int lane1 = rand() % LANE_COUNT;
+			int lane2 = rand() % LANE_COUNT;
+			while (lane2 == lane1) {
+				lane2 = rand() % LANE_COUNT;
+			}
+			if (lane1 > lane2) {
+				int temp = lane2;
+				lane2 = lane1;
+				lane1 = temp;
+			}
+			usleep(1000000/shotRate);
+			Color check1 = Gallery->Get(lane1);
+			Color check2 = Gallery->Get(lane2);
+			if (check1 == white && check2 == white) {
+				lock->lock();
+				check1 = Gallery->Get(lane1);
+				check2 = Gallery->Get(lane2);
+				if (check1 == white && check2 == white) {
+					check1 = Gallery->Set(lane1, bullet);
+					check2 = Gallery->Set(lane2, bullet);
+					if (check1 == bullet) {
+						success++;
+					}
+					if (check2 == bullet) {
+						success++;
+					}
+				}
+				lock->unlock();
+			}
+		}
+	}
 };
 
 class RogueFine2 {
