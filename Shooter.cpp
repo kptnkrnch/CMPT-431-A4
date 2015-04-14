@@ -92,6 +92,9 @@ int main(int argc, char** argv)
 	RogueFine red_fine_shooter(red, 1, locks, &barrier);
 	RogueFine blue_fine_shooter(blue, 1, locks, &barrier);
 	
+	RogueFine2 red_fine2_shooter(red, 1, locks, &barrier);
+	RogueFine2 blue_fine2_shooter(blue, 1, locks, &barrier);
+	
 	RogueCoarseCleaner cleaner(l);
 	
 	RogueFineCleaner fine_cleaner(locks);
@@ -104,8 +107,12 @@ int main(int argc, char** argv)
     //ths.push_back(std::thread(&RogueCoarse::shoot, blue_shooter));
 	//ths.push_back(std::thread(&RogueCoarseCleaner::clean, cleaner));
 	
-	ths.push_back(std::thread(&RogueFine::shoot, red_fine_shooter));
-    ths.push_back(std::thread(&RogueFine::shoot, blue_fine_shooter));
+	//ths.push_back(std::thread(&RogueFine::shoot, red_fine_shooter));
+    //ths.push_back(std::thread(&RogueFine::shoot, blue_fine_shooter));
+	//ths.push_back(std::thread(&RogueFineCleaner::clean, fine_cleaner));
+	
+	ths.push_back(std::thread(&RogueFine2::shoot, red_fine2_shooter));
+    ths.push_back(std::thread(&RogueFine2::shoot, blue_fine2_shooter));
 	ths.push_back(std::thread(&RogueFineCleaner::clean, fine_cleaner));
 
 	ths.push_back(std::thread(&Printer,5));
