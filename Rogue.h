@@ -57,8 +57,8 @@ public:
 	}
 	
 	void shoot() {
+		barrier->barrier();
 		while(1) {
-			barrier->barrier();
 			int lane = rand() % LANE_COUNT;
 			usleep(1000000/shotRate);
 			Color check = Gallery->Get(lane);
@@ -82,12 +82,40 @@ public:
 
 class RogueFine {
 public:
-	RogueFine(int color, int rate);
-
 	/* data */
-	Color Bullet; // The bullet color to paint the lane
-	int ShotRate; // Rate/s required to shoot the lanes
-	int Success; // Rate/s of lanes shot by ROGUE
+	Color bullet; // The bullet color to paint the lane
+	int shotRate; // Rate/s required to shoot the lanes
+	int success; // Rate/s of lanes shot by ROGUE
+	AtomicLock * locks;
+	AtomicBarrier * barrier;
+	
+	RogueFine(Color color, int rate, AtomicLock * _locks, AtomicBarrier * _barrier) {
+		bullet = color;
+		shotRate = rate;
+		success = 0;
+		locks = _locks;
+		barrier = _barrier;
+	}
+	
+	void shoot() {
+		barrier->barrier();
+		while(1) {
+			int lane = rand() % LANE_COUNT;
+			usleep(1000000/shotRate);
+			Color check = Gallery->Get(lane);
+			if (check == white) {
+				locks[lane].lock();
+				check = Gallery->Get(lane);
+				if (check == white) {
+					check = Gallery->Set(lane, bullet);
+					if (check == bullet) {
+						success++;
+					}
+				}
+				locks[lane].unlock();
+			}
+		}
+	}
 };
 
 class RogueTM {
@@ -160,10 +188,40 @@ public:
 		}
 	}
 };
-/*
-class RogueFineCleaner {
-};
 
+class RogueFineCleaner {
+public:
+	AtomicLock * locks;
+	
+	RogueFineCleaner(AtomicLock * _locks) {
+		locks = _locks;
+	}
+
+	void clean() {
+		while(1) {
+			int dirty_lanes = 0;
+			for (int i = 0; i < LANE_COUNT; i++) {
+				Color temp = Gallery->Get(i);
+				if (temp == violet) {
+					exit(2);
+				}
+				if (temp != white) {
+					dirty_lanes++;
+				}
+			}
+			if (dirty_lanes == LANE_COUNT) {
+				for (int i = 0; i < LANE_COUNT; i++) {
+					locks[i].lock();
+				}
+				Gallery->Clear();
+				for (int i = 0; i < LANE_COUNT; i++) {
+					locks[i].unlock();
+				}
+			}
+		}
+	}
+};
+/*
 class RogueTMCleaner {
 };
 */

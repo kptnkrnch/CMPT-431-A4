@@ -11,6 +11,7 @@
 #include <iomanip>
 #include <ostream>
 #include <assert.h>
+#include "helper.h"
 
 #define LANE_COUNT 8
 
@@ -60,6 +61,8 @@ public:
 
   // Obtain color in specific lane
   Color Set(int index,Color c);
+  
+  Color SetFine(int index,Color c);
 
   // Set color in specific lane
   Color Get(int index);
@@ -74,6 +77,7 @@ public:
 private:
   Color* lanes;
   int nlanes;
+  AtomicLock * locks;
   /* data */
 };
 
@@ -82,11 +86,12 @@ private:
 Lanes::Lanes(int nlanes) : nlanes(nlanes)
 {
   lanes = new Color[nlanes];
+  locks = new AtomicLock[nlanes];
 }
 
 Lanes::~Lanes()
 {
-
+  delete[] locks;
   delete[] lanes;
 }
 
@@ -126,6 +131,31 @@ Color Lanes::Set(int index, Color c)
 
   return white;
 
+}
+
+Color Lanes::SetFine(int index,Color c) {
+	// You should be only trying to set red or blue.
+	assert ((c == red) || (c == blue));
+
+	// If violet you are already in trouble
+	if (lanes[index] == violet) return violet;
+
+	// If another color then a thread beat you. Figure out why you got here
+	// in the first place. You shouldn't be trying to shoot a lane that has already
+	// been shot by someone else OR shot by yourself earlier.
+	if (lanes[index] != white) {
+		Color OldColor = lanes[index];
+		lanes[index] = (lanes[index] == c)? c : violet ;
+
+		return OldColor;
+	}
+
+	// If I got here then I am sure my lane is white.
+	locks[index].lock();
+	lanes[index] = c;
+	locks[index].unlock();
+
+	return white;
 }
 
 Color Lanes::Get(int index)
