@@ -117,9 +117,9 @@ int main(int argc, char** argv)
     //ths.push_back(std::thread(&RogueCoarse::shoot, blue_coarse_shooter));
 	//ths.push_back(std::thread(&RogueCoarseCleaner::clean, cleaner));
 	
-	ths.push_back(std::thread(&RogueCoarse2::shoot, red_coarse2_shooter));
-    ths.push_back(std::thread(&RogueCoarse2::shoot, blue_coarse2_shooter));
-	ths.push_back(std::thread(&RogueCoarseCleaner::clean, cleaner));
+	//ths.push_back(std::thread(&RogueCoarse2::shoot, red_coarse2_shooter));
+    //ths.push_back(std::thread(&RogueCoarse2::shoot, blue_coarse2_shooter));
+	//ths.push_back(std::thread(&RogueCoarseCleaner::clean, cleaner));
 	
 	//ths.push_back(std::thread(&RogueFine::shoot, red_fine_shooter));
     //ths.push_back(std::thread(&RogueFine::shoot, blue_fine_shooter));
@@ -129,13 +129,21 @@ int main(int argc, char** argv)
     //ths.push_back(std::thread(&RogueFine2::shoot, blue_fine2_shooter));
 	//ths.push_back(std::thread(&RogueFineCleaner::clean, fine_cleaner));
 	
+	//ths.push_back(std::thread(&RogueTM::RTMShoot, red_TM_shooter));
+    //ths.push_back(std::thread(&RogueTM::RTMShoot, blue_TM_shooter));
+	//ths.push_back(std::thread(&RogueTMCleaner::RTMClean, TM_cleaner));
+	
+	//ths.push_back(std::thread(&RogueTM2::RTMShoot, red_TM2_shooter));
+    //ths.push_back(std::thread(&RogueTM2::RTMShoot, blue_TM2_shooter));
+	//ths.push_back(std::thread(&RogueTMCleaner::RTMClean, TM_cleaner));
+	
 	//ths.push_back(std::thread(&RogueTM::HLEShoot, red_TM_shooter));
     //ths.push_back(std::thread(&RogueTM::HLEShoot, blue_TM_shooter));
 	//ths.push_back(std::thread(&RogueTMCleaner::HLEClean, TM_cleaner));
 	
-	ths.push_back(std::thread(&RogueTM2::HLEShoot, red_TM2_shooter));
-    ths.push_back(std::thread(&RogueTM2::HLEShoot, blue_TM2_shooter));
-	ths.push_back(std::thread(&RogueTMCleaner::HLEClean, TM_cleaner));
+	//ths.push_back(std::thread(&RogueTM2::HLEShoot, red_TM2_shooter));
+    //ths.push_back(std::thread(&RogueTM2::HLEShoot, blue_TM2_shooter));
+	//ths.push_back(std::thread(&RogueTMCleaner::HLEClean, TM_cleaner));
 
 	ths.push_back(std::thread(&Printer,5));
 
