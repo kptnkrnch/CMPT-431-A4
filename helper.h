@@ -110,7 +110,7 @@ public:
 	
 	void unlock() {
 		int val = 0;
-		__atomic_load(&val, &latch, __ATOMIC_CONSUME);
+		__atomic_load(&val, &latch, __ATOMIC_RELEASE | __ATOMIC_HLE_RELEASE);
 	}
 };
 
