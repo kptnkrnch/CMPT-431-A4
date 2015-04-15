@@ -85,9 +85,9 @@ public:
 };
 
 class HLELock {
-private:
-	int latch;
 public:
+	int latch;
+	
 	HLELock() {
 		latch = 0;
 	}
@@ -110,7 +110,8 @@ public:
 	
 	void unlock() {
 		int val = 0;
-		__atomic_load(&val, &latch, __ATOMIC_RELEASE | __ATOMIC_HLE_RELEASE);
+		__atomic_exchange_n(&latch, 0, __ATOMIC_RELEASE | __ATOMIC_HLE_RELEASE);
+		//__atomic_load(&latch, &val, __ATOMIC_CONSUME);
 	}
 };
 
