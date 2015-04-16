@@ -55,7 +55,7 @@ class Lanes
 {
 public:
   // Constructors
-  Lanes(int nlanes, int _rounds);
+  Lanes(int nlanes, int rounds);
   Lanes(const Lanes &from);
   ~Lanes();
 
