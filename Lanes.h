@@ -55,7 +55,7 @@ class Lanes
 {
 public:
   // Constructors
-  Lanes(int nlanes);
+  Lanes(int nlanes, int _rounds);
   Lanes(const Lanes &from);
   ~Lanes();
 
@@ -69,20 +69,29 @@ public:
   int Count();
   // print color of lane.
   void Print();
-  //
+
+  //make sure we still have rounds
+  bool hasRounds();
+
+  //cleaner specific member functions
   void Clear();
+  bool allDirty();
+  bool hasViolet();
 
 private:
   Color* lanes;
   int nlanes;
+  int dirty_lanes;
+  bool has_violet;
+  int rounds;
   /* data */
 };
 
-
-
-Lanes::Lanes(int nlanes) : nlanes(nlanes)
+Lanes::Lanes(int nlanes, int rounds) : nlanes(nlanes), rounds(rounds)
 {
   lanes = new Color[nlanes];
+  dirty_lanes = 0;
+  has_violet = false;
 }
 
 Lanes::~Lanes()
@@ -93,6 +102,9 @@ Lanes::~Lanes()
 Lanes::Lanes(const Lanes& from)
 {
   nlanes = from.nlanes;
+  has_violet = from.has_violet;
+  dirty_lanes = from.dirty_lanes;
+
   lanes = new Color[nlanes];
   for (int i = 0; i < nlanes; ++i)
   {
@@ -107,7 +119,10 @@ Color Lanes::Set(int index, Color c)
   assert ((c == red) || (c == blue));
 
   // If violet you are already in trouble
-  if (lanes[index] == violet) return violet;
+  if (lanes[index] == violet) {
+    has_violet = true;
+    return violet;
+  } 
 
   // If another color then a thread beat you. Figure out why you got here
   // in the first place. You shouldn't be trying to shoot a lane that has already
@@ -117,21 +132,37 @@ Color Lanes::Set(int index, Color c)
     Color OldColor = lanes[index];
     lanes[index] = (lanes[index] == c)? c : violet ;
 
+    if(lanes[index] == violet) {
+      has_violet = true;
+    }
+
     return OldColor;
   }
 
   // If I got here then I am sure my lane is white.
 
   lanes[index] = c;
+  dirty_lanes++;
 
   return white;
-
 }
 
 Color Lanes::Get(int index)
 {
 
   return lanes[index];
+}
+
+bool Lanes::hasRounds() {
+  return rounds > 0;
+}
+
+bool Lanes::hasViolet() {
+  return has_violet;
+}
+
+bool Lanes::allDirty() {
+  return dirty_lanes >= nlanes;
 }
 
 int Lanes::Count()
@@ -147,6 +178,9 @@ void Lanes::Clear()
   {
     lanes[i] = white;
   }
+  has_violet = false;
+  dirty_lanes = 0;
+  rounds--;
 }
 
 

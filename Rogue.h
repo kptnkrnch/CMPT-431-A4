@@ -7,6 +7,7 @@
 #include <iostream>
 #include "Lanes.h"
 #include "helper.h"
+#include <random>
 
 #define MAX_RETRIES 100
 
@@ -33,12 +34,61 @@ public:
 	AtomicLock * lock;
 	AtomicBarrier * barrier;
 
+
+
 	RogueCoarse(Color color, int rate, AtomicLock * _lock, AtomicBarrier * _barrier) {
-		
+		bullet = color;
+		shotRate = rate;
+		lock = _lock;
+		barrier = _barrier;
+		success = 0; //not really used
 	}
 	
 	void shoot() {
-		
+
+		//locally allocate and setup random number generator
+		thread_local std::mt19937 gen((std::random_device())());
+		thread_local std::uniform_int_distribution<int> dist(0,LANE_COUNT-1);
+
+		if(barrier != 0 ) {
+			//wait until every thread is here
+			barrier->barrier();
+		}
+		else {
+			std::cerr << "ERROR: Course barrier was not set!" << std::endl;
+		}
+
+		if(lock != 0) {
+			//lock properly initialized, moving on
+
+			while(Gallery->hasRounds()) {
+
+				int lane = dist(gen);
+				usleep(1000000/shotRate);
+
+				Color check = Gallery->Get(lane);
+
+				if(check == white) {
+					lock->lock();
+
+					check = Gallery->Get(lane);
+
+					if(check == white) {
+						//still good so color it
+						check = Gallery->Set(lane, bullet);
+
+						if(check == bullet) {
+							success++;
+						}
+					}
+
+					lock->unlock();
+				}
+			}
+		}
+		else {
+			std::cerr << "ERROR: Course lock was not set!" << std::endl;
+		}
 	}
 };
 
@@ -64,7 +114,7 @@ public:
 			barrier->barrier();
 		}
 		if (locks != 0) {
-			while(1) {
+			while(Gallery->hasRounds()) {
 				int lane = rand() % LANE_COUNT;
 				usleep(1000000/shotRate);
 				Color check = Gallery->Get(lane);
@@ -110,7 +160,7 @@ public:
 			barrier->barrier();
 		}
 		if (fallback_lock != 0) {
-			while(1) {
+			while(Gallery->hasRounds()) {
 				int lane = rand() % LANE_COUNT;
 				usleep(1000000/shotRate);
 				Color check = Gallery->Get(lane);
@@ -158,7 +208,7 @@ public:
 			barrier->barrier();
 		}
 		if (hle_lock != 0) {
-			while(1) {
+			while(Gallery->hasRounds()) {
 				int lane = rand() % LANE_COUNT;
 				usleep(1000000/shotRate);
 				Color check = Gallery->Get(lane);
@@ -190,11 +240,76 @@ public:
 	AtomicBarrier * barrier;
 
 	RogueCoarse2(Color color, int rate, AtomicLock * _lock, AtomicBarrier * _barrier) {
-		
+		bullet = color;
+		shotRate = rate;
+		lock = _lock;
+		barrier = _barrier;
+		success = 0;
 	}
 	
 	void shoot() {
-		
+
+		//locally allocate and setup random number generator
+		thread_local std::mt19937 gen((std::random_device())());
+		thread_local std::uniform_int_distribution<int> dist(0,LANE_COUNT-1);
+
+		if(barrier != 0 ) {
+			//wait until every thread is here
+			barrier->barrier();
+		}
+		else {
+			std::cerr << "ERROR: Course barrier was not set!" << std::endl;
+		}
+
+		if(lock != 0) {
+			//lock properly initialized, moving on
+
+			while(Gallery->hasRounds()) {
+
+				int lane = dist(gen);
+				int lane2 = dist(gen);
+
+				while(lane == lane2) {
+					lane2 = dist(gen);
+				}
+
+				if(lane > lane2) {
+					int temp = lane2;
+					lane2 = lane;
+					lane = temp;
+				}
+
+				usleep(1000000/shotRate);
+
+				Color check = Gallery->Get(lane);
+				Color check2 = Gallery->Get(lane2);
+
+				if(check == white && check2 == white) {
+					lock->lock();
+
+					check = Gallery->Get(lane);
+					check2 = Gallery->Get(lane2);
+
+					if(check == white && check2 == white) {
+						//still good so color it
+						check = Gallery->Set(lane, bullet);
+						check2 = Gallery->Set(lane2, bullet);
+
+						if(check == bullet) {
+							success++;
+						}
+						if(check2 == bullet) {
+							success++;
+						}
+					}
+
+					lock->unlock();
+				}
+			}
+		}
+		else {
+			std::cerr << "ERROR: Course lock was not set!" << std::endl;
+		}
 	}
 };
 
@@ -220,7 +335,7 @@ public:
 			barrier->barrier();
 		}
 		if (locks != 0) {
-			while(1) {
+			while(Gallery->hasRounds()) {
 				int lane1 = rand() % LANE_COUNT;
 				int lane2 = rand() % LANE_COUNT;
 				while (lane2 == lane1) {
@@ -283,7 +398,7 @@ public:
 			barrier->barrier();
 		}
 		if (fallback_lock != 0) {
-			while(1) {
+			while(Gallery->hasRounds()) {
 				int lane1 = rand() % LANE_COUNT;
 				int lane2 = rand() % LANE_COUNT;
 				while (lane2 == lane1) {
@@ -351,7 +466,7 @@ public:
 			barrier->barrier();
 		}
 		if (hle_lock != 0) {
-			while(1) {
+			while(Gallery->hasRounds()) {
 				int lane1 = rand() % LANE_COUNT;
 				int lane2 = rand() % LANE_COUNT;
 				while (lane2 == lane1) {
@@ -392,10 +507,33 @@ public:
 	AtomicLock * lock;
 	
 	RogueCoarseCleaner(AtomicLock * _lock) {
-		
+		lock = _lock;
 	}
 
 	void clean() {
+
+		if(lock != 0) {
+			while(Gallery->hasRounds()) {
+
+				if(Gallery->hasViolet()) {
+					exit(2);
+				}
+
+				if (Gallery->allDirty()) {
+					lock->lock();
+
+					Gallery->Print();
+					//more stats go here
+
+					Gallery->Clear();
+					
+					lock->unlock();
+				}
+			}
+		}
+		else {
+			std::cerr << "ERROR: Course cleaner lock was not set!" << std::endl;
+		}
 		
 	}
 };
@@ -410,7 +548,7 @@ public:
 
 	void clean() {
 		if (locks != 0) {
-			while(1) {
+			while(Gallery->hasRounds()) {
 				int dirty_lanes = 0;
 				for (int i = 0; i < LANE_COUNT; i++) {
 					Color temp = Gallery->Get(i);
@@ -425,6 +563,8 @@ public:
 					for (int i = 0; i < LANE_COUNT; i++) {
 						locks[i].lock();
 					}
+					Gallery->Print();
+					//more stats go here
 					Gallery->Clear();
 					for (int i = 0; i < LANE_COUNT; i++) {
 						locks[i].unlock();
@@ -443,15 +583,76 @@ public:
 	HLELock * hle_lock;
 	
 	RogueTMCleaner(HLELock * _hlelock, AtomicLock * _atomiclock) {
-		
+		fallback_lock = _atomiclock;
+		hle_lock = _hlelock;
 	}
 	
 	void RTMClean() {
+
+		if(fallback_lock != 0) {
+
+			while(Gallery->hasRounds()) {
+				if(Gallery->hasViolet()) {
+					exit(2);
+				}
+
+				if(Gallery->allDirty()) {
+
+					bool retry = false;
+					int nretries = 0;
+
+					do {
+						retry = false;
+						if(_xbegin() == _XBEGIN_STARTED) {
+							Gallery->Clear();
+
+							//TODO find way to print here as RTM doesnt work with printing...
+							_xend();
+						}
+						else {
+							retry = true;
+							nretries++;
+						}
+					} while(retry && nretries < MAX_RETRIES);
+
+					if(nretries >= MAX_RETRIES) {
+						fallback_lock->lock();
+						Gallery->Print();
+						//more stats go here
+						Gallery->Clear();
+						fallback_lock->unlock();
+					}
+				}
+			}
+		}
+		else {
+			std::cerr << "ERROR: RTM cleaner fallback lock was not set!" << std::endl;
+		}
 		
 	}
 	
 	void HLEClean() {
-		
+		if(hle_lock != 0) {
+			while(Gallery->hasRounds()) {
+
+				if(Gallery->hasViolet()) {
+					exit(2);
+				}
+
+				if (Gallery->allDirty()) {
+					hle_lock->lock();
+
+					Gallery->Print();
+					//more stats go here
+					Gallery->Clear();
+					
+					hle_lock->unlock();
+				}
+			}
+		}
+		else {
+			std::cerr << "ERROR: HLE cleaner lock was not set!" << std::endl;
+		}
 	}
 };
 

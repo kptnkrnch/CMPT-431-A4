@@ -2,10 +2,10 @@
 all: Shooter
 
 Shooter: Shooter.o 
-	g++ -mrtm -std=c++0x -Wl,--no-as-needed -pthread $< -o $@ 
+	g++ -mrtm -std=c++11 -Wl,--no-as-needed -pthread $< -o $@ 
 
 Shooter.o: Shooter.cpp
-	g++ -c -mrtm -std=c++0x -Wl,--no-as-needed -pthread $<
+	g++ -c -mrtm -std=c++11 -Wl,--no-as-needed -pthread $<
 
 clean:
 	rm -rf *o Shooter
