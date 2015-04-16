@@ -601,12 +601,13 @@ public:
 					bool retry = false;
 					int nretries = 0;
 
+					Gallery->Print();
+					//more stats go here
+
 					do {
 						retry = false;
 						if(_xbegin() == _XBEGIN_STARTED) {
 							Gallery->Clear();
-
-							//TODO find way to print here as RTM doesnt work with printing...
 							_xend();
 						}
 						else {
@@ -617,8 +618,6 @@ public:
 
 					if(nretries >= MAX_RETRIES) {
 						fallback_lock->lock();
-						Gallery->Print();
-						//more stats go here
 						Gallery->Clear();
 						fallback_lock->unlock();
 					}
@@ -640,12 +639,12 @@ public:
 				}
 
 				if (Gallery->allDirty()) {
-					hle_lock->lock();
 
 					Gallery->Print();
 					//more stats go here
+
+					hle_lock->lock();
 					Gallery->Clear();
-					
 					hle_lock->unlock();
 				}
 			}
