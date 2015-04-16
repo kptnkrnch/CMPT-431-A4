@@ -91,26 +91,28 @@ int main(int argc, char** argv)
 	
     Gallery = new Lanes(LANE_COUNT, atoi(argv[3]));
 
+    int red_rate = atoi(argv[1]);
+    int blue_rate = atoi(argv[2]);
+
     //    std::thread RedShooterT,BlueShooterT,CleanerT,PrinterT;
 
-    //TODO add red and blue rates in
-	RogueCoarse red_coarse_shooter(red, 1, lock, &barrier); 
-	RogueCoarse blue_coarse_shooter(blue, 1, lock, &barrier);
+	RogueCoarse red_coarse_shooter(red, red_rate, lock, &barrier); 
+	RogueCoarse blue_coarse_shooter(blue, blue_rate, lock, &barrier);
 	
-	RogueCoarse2 red_coarse2_shooter(red, 1, lock, &barrier); 
-	RogueCoarse2 blue_coarse2_shooter(blue, 1, lock, &barrier);
+	RogueCoarse2 red_coarse2_shooter(red, red_rate, lock, &barrier); 
+	RogueCoarse2 blue_coarse2_shooter(blue, blue_rate, lock, &barrier);
 	
-	RogueFine red_fine_shooter(red, 1, locks, &barrier);
-	RogueFine blue_fine_shooter(blue, 1, locks, &barrier);
+	RogueFine red_fine_shooter(red, red_rate, locks, &barrier);
+	RogueFine blue_fine_shooter(blue, blue_rate, locks, &barrier);
 	
-	RogueFine2 red_fine2_shooter(red, 1, locks, &barrier);
-	RogueFine2 blue_fine2_shooter(blue, 1, locks, &barrier);
+	RogueFine2 red_fine2_shooter(red, red_rate, locks, &barrier);
+	RogueFine2 blue_fine2_shooter(blue, blue_rate, locks, &barrier);
 	
-	RogueTM red_TM_shooter(red, 1, hle_lock, lock, &barrier);
-	RogueTM blue_TM_shooter(blue, 1, hle_lock, lock, &barrier);
+	RogueTM red_TM_shooter(red, red_rate, hle_lock, lock, &barrier);
+	RogueTM blue_TM_shooter(blue, blue_rate, hle_lock, lock, &barrier);
 	
-	RogueTM2 red_TM2_shooter(red, 1, hle_lock, lock, &barrier);
-	RogueTM2 blue_TM2_shooter(blue, 1, hle_lock, lock, &barrier);
+	RogueTM2 red_TM2_shooter(red, red_rate, hle_lock, lock, &barrier);
+	RogueTM2 blue_TM2_shooter(blue, blue_rate, hle_lock, lock, &barrier);
 	
 	RogueCoarseCleaner cleaner(lock);
 	RogueFineCleaner fine_cleaner(locks);
