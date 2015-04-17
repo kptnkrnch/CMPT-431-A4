@@ -120,12 +120,14 @@ public:
 	
 	void shoot() {
 		auto start_timer = std::chrono::steady_clock::now();
+		thread_local std::mt19937 gen((std::random_device())());
+		thread_local std::uniform_int_distribution<int> dist(0,LANE_COUNT-1);
 		if (barrier != 0) {
 			barrier->barrier();
 		}
 		if (locks != 0) {
 			while(Gallery->hasRounds()) {
-				int lane = rand() % LANE_COUNT;
+				int lane = dist(gen);
 				usleep(1000000/shotRate);
 				Color check = Gallery->Get(lane);
 				if (check == white) {
@@ -179,12 +181,14 @@ public:
 	
 	void RTMShoot() {
 		auto start_timer = std::chrono::steady_clock::now();
+		thread_local std::mt19937 gen((std::random_device())());
+		thread_local std::uniform_int_distribution<int> dist(0,LANE_COUNT-1);
 		if (barrier != 0) {
 			barrier->barrier();
 		}
 		if (fallback_lock != 0) {
 			while(Gallery->hasRounds()) {
-				int lane = rand() % LANE_COUNT;
+				int lane = dist(gen);
 				usleep(1000000/shotRate);
 				Color check = Gallery->Get(lane);
 				if (check == white) {
@@ -236,12 +240,14 @@ public:
 	
 	void HLEShoot() {
 		auto start_timer = std::chrono::steady_clock::now();
+		thread_local std::mt19937 gen((std::random_device())());
+		thread_local std::uniform_int_distribution<int> dist(0,LANE_COUNT-1);
 		if (barrier != 0) {
 			barrier->barrier();
 		}
 		if (hle_lock != 0) {
 			while(Gallery->hasRounds()) {
-				int lane = rand() % LANE_COUNT;
+				int lane = dist(gen);
 				usleep(1000000/shotRate);
 				Color check = Gallery->Get(lane);
 				if (check == white) {
@@ -381,15 +387,17 @@ public:
 	
 	void shoot() {
 		auto start_timer = std::chrono::steady_clock::now();
+		thread_local std::mt19937 gen((std::random_device())());
+		thread_local std::uniform_int_distribution<int> dist(0,LANE_COUNT-1);
 		if (barrier != 0) {
 			barrier->barrier();
 		}
 		if (locks != 0) {
 			while(Gallery->hasRounds()) {
-				int lane1 = rand() % LANE_COUNT;
-				int lane2 = rand() % LANE_COUNT;
+				int lane1 = dist(gen);
+				int lane2 = dist(gen);
 				while (lane2 == lane1) {
-					lane2 = rand() % LANE_COUNT;
+					lane2 = dist(gen);
 				}
 				if (lane1 > lane2) {
 					int temp = lane2;
@@ -455,15 +463,17 @@ public:
 	
 	void RTMShoot() {
 		auto start_timer = std::chrono::steady_clock::now();
+		thread_local std::mt19937 gen((std::random_device())());
+		thread_local std::uniform_int_distribution<int> dist(0,LANE_COUNT-1);
 		if (barrier != 0) {
 			barrier->barrier();
 		}
 		if (fallback_lock != 0) {
 			while(Gallery->hasRounds()) {
-				int lane1 = rand() % LANE_COUNT;
-				int lane2 = rand() % LANE_COUNT;
+				int lane1 = dist(gen);
+				int lane2 = dist(gen);
 				while (lane2 == lane1) {
-					lane2 = rand() % LANE_COUNT;
+					lane2 = dist(gen);
 				}
 				if (lane1 > lane2) {
 					int temp = lane2;
@@ -534,15 +544,17 @@ public:
 	
 	void HLEShoot() {
 		auto start_timer = std::chrono::steady_clock::now();
+		thread_local std::mt19937 gen((std::random_device())());
+		thread_local std::uniform_int_distribution<int> dist(0,LANE_COUNT-1);
 		if (barrier != 0) {
 			barrier->barrier();
 		}
 		if (hle_lock != 0) {
 			while(Gallery->hasRounds()) {
-				int lane1 = rand() % LANE_COUNT;
-				int lane2 = rand() % LANE_COUNT;
+				int lane1 = dist(gen);
+				int lane2 = dist(gen);
 				while (lane2 == lane1) {
-					lane2 = rand() % LANE_COUNT;
+					lane2 = dist(gen);
 				}
 				if (lane1 > lane2) {
 					int temp = lane2;
