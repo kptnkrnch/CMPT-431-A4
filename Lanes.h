@@ -77,6 +77,8 @@ public:
   void Clear();
   bool allDirty();
   bool hasViolet();
+  
+  void reset();
 
 private:
   Color* lanes;
@@ -84,10 +86,11 @@ private:
   int dirty_lanes;
   bool has_violet;
   int rounds;
+  int max_rounds;
   /* data */
 };
 
-Lanes::Lanes(int nlanes, int rounds) : nlanes(nlanes), rounds(rounds)
+Lanes::Lanes(int nlanes, int rounds) : nlanes(nlanes), rounds(rounds), max_rounds(rounds)
 {
   lanes = new Color[nlanes];
   dirty_lanes = 0;
@@ -221,6 +224,11 @@ void Lanes::Print()
     std::cout<<std::endl;
 
 
+}
+
+void Lanes::reset() {
+	Clear();
+	rounds = max_rounds;
 }
 
 

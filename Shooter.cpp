@@ -6,7 +6,10 @@
 #include "Rogue.h"
 #include "helper.h"
 #include <vector>
+#include <chrono>
 #include <mutex>
+
+
 
 Lanes* Gallery;
 int nlanes;
@@ -76,8 +79,15 @@ void Printer(int rate) {
 
 int main(int argc, char** argv)
 {
-
-    std::vector<thread> ths;
+std::vector<thread> ths;
+    std::vector<thread> coarse;
+	std::vector<thread> coarse2;
+	std::vector<thread> fine;
+	std::vector<thread> fine2;
+	std::vector<thread> rtm;
+	std::vector<thread> rtm2;
+	std::vector<thread> hle;
+	std::vector<thread> hle2;
 
     if(argc < 4) {
         std::cout << argv[0] << " <red rate> <blue rate> <# rounds>" << std::endl;
@@ -88,6 +98,9 @@ int main(int argc, char** argv)
 	AtomicLock * locks = new AtomicLock[LANE_COUNT];
 	HLELock * hle_lock = new HLELock();
 	AtomicBarrier barrier(2);
+	
+	double red_success_rate = 0;
+	double blue_success_rate = 0;
 	
     Gallery = new Lanes(LANE_COUNT, atoi(argv[3]));
 
@@ -122,55 +135,85 @@ int main(int argc, char** argv)
     //ths.push_back(std::thread(&ShooterAction,50,blue));
     //ths.push_back(std::thread(&Cleaner));
 	
-	// ths.push_back(std::thread(&RogueCoarse::shoot, red_coarse_shooter));
- //    ths.push_back(std::thread(&RogueCoarse::shoot, blue_coarse_shooter));
-	// ths.push_back(std::thread(&RogueCoarseCleaner::clean, cleaner));
-	
-	// ths.push_back(std::thread(&RogueCoarse2::shoot, red_coarse2_shooter));
- //    ths.push_back(std::thread(&RogueCoarse2::shoot, blue_coarse2_shooter));
-	// ths.push_back(std::thread(&RogueCoarseCleaner::clean, cleaner));
-	
-	// ths.push_back(std::thread(&RogueFine::shoot, red_fine_shooter));
- //    ths.push_back(std::thread(&RogueFine::shoot, blue_fine_shooter));
-	// ths.push_back(std::thread(&RogueFineCleaner::clean, fine_cleaner));
-	
-	// ths.push_back(std::thread(&RogueFine2::shoot, red_fine2_shooter));
- //    ths.push_back(std::thread(&RogueFine2::shoot, blue_fine2_shooter));
-	// ths.push_back(std::thread(&RogueFineCleaner::clean, fine_cleaner));
-	
-	//ths.push_back(std::thread(&RogueTM::RTMShoot, red_TM_shooter));
-    //ths.push_back(std::thread(&RogueTM::RTMShoot, blue_TM_shooter));
-	//ths.push_back(std::thread(&RogueTMCleaner::RTMClean, TM_cleaner));
-    //ths.push_back(std::thread(&Printer,5));
-	
-	//ths.push_back(std::thread(&RogueTM2::RTMShoot, red_TM2_shooter));
-    //ths.push_back(std::thread(&RogueTM2::RTMShoot, blue_TM2_shooter));
-	//ths.push_back(std::thread(&RogueTMCleaner::RTMClean, TM_cleaner));
-    //ths.push_back(std::thread(&Printer,5));
-	
-	//ths.push_back(std::thread(&RogueTM::HLEShoot, red_TM_shooter));
-    //ths.push_back(std::thread(&RogueTM::HLEShoot, blue_TM_shooter));
-	//ths.push_back(std::thread(&RogueTMCleaner::HLEClean, TM_cleaner));
-	
-	//ths.push_back(std::thread(&RogueTM2::HLEShoot, red_TM2_shooter));
-    //ths.push_back(std::thread(&RogueTM2::HLEShoot, blue_TM2_shooter));
-	//ths.push_back(std::thread(&RogueTMCleaner::HLEClean, TM_cleaner));
-
-	//ths.push_back(std::thread(&Printer,5));
-
-    // Join with threads
-    //    RedShooterT.join();
-    //  BlueShooterT.join();
-    //  CleanerT.join();
-    // PrinterT.join();
-
-
-    for (auto& th : ths) {
-
+	cout << "Running RogueCoarse (single shot):" << endl;
+	ths.push_back(std::thread(&RogueCoarse::shoot, red_coarse_shooter));
+    ths.push_back(std::thread(&RogueCoarse::shoot, blue_coarse_shooter));
+	ths.push_back(std::thread(&RogueCoarseCleaner::clean, cleaner));
+	for (auto& th : ths) {
         th.join();
-
+    }
+	Gallery->reset();
+	ths.clear();
+	
+	cout << endl << "Running RogueCoarse2 (two shots):" << endl;
+	ths.push_back(std::thread(&RogueCoarse2::shoot, red_coarse2_shooter));
+    ths.push_back(std::thread(&RogueCoarse2::shoot, blue_coarse2_shooter));
+	ths.push_back(std::thread(&RogueCoarseCleaner::clean, cleaner));
+	for (auto& th : ths) {
+        th.join();
+    }
+	Gallery->reset();
+	ths.clear();
+	
+	cout << endl << "Running RogueFine (single shot):" << endl;
+	ths.push_back(std::thread(&RogueFine::shoot, red_fine_shooter));
+	ths.push_back(std::thread(&RogueFine::shoot, blue_fine_shooter));
+	ths.push_back(std::thread(&RogueFineCleaner::clean, fine_cleaner));
+	for (auto& th : ths) {
+        th.join();
+    }
+	Gallery->reset();
+	ths.clear();
+	
+	cout << endl << "Running RogueFine2 (two shots):" << endl;
+	ths.push_back(std::thread(&RogueFine2::shoot, red_fine2_shooter));
+    ths.push_back(std::thread(&RogueFine2::shoot, blue_fine2_shooter));
+	ths.push_back(std::thread(&RogueFineCleaner::clean, fine_cleaner));
+	for (auto& th : ths) {
+        th.join();
+    }
+	Gallery->reset();
+	ths.clear();
+	
+	cout << endl << "Running RogueTM using RTM (single shot):" << endl;
+	rtm.push_back(std::thread(&RogueTM::RTMShoot, red_TM_shooter));
+    rtm.push_back(std::thread(&RogueTM::RTMShoot, blue_TM_shooter));
+	rtm.push_back(std::thread(&RogueTMCleaner::RTMClean, TM_cleaner));
+	for (auto& th : rtm) {
+        th.join();
+    }
+	Gallery->reset();
+	ths.clear();
+	
+	cout << endl << "Running RogueTM2 using RTM (two shots):" << endl;
+	ths.push_back(std::thread(&RogueTM2::RTMShoot, red_TM2_shooter));
+    ths.push_back(std::thread(&RogueTM2::RTMShoot, blue_TM2_shooter));
+	ths.push_back(std::thread(&RogueTMCleaner::RTMClean, TM_cleaner));
+	for (auto& th : ths) {
+        th.join();
+    }
+	Gallery->reset();
+	ths.clear();
+	
+	cout << endl << "Running RogueTM using HLE (single shot):" << endl;
+	ths.push_back(std::thread(&RogueTM::HLEShoot, red_TM_shooter));
+    ths.push_back(std::thread(&RogueTM::HLEShoot, blue_TM_shooter));
+	ths.push_back(std::thread(&RogueTMCleaner::HLEClean, TM_cleaner));
+	for (auto& th : ths) {
+        th.join();
+    }
+	Gallery->reset();
+	ths.clear();
+	
+	cout << endl << "Running RogueTM2 using HLE (two shots):" << endl;
+	ths.push_back(std::thread(&RogueTM2::HLEShoot, red_TM2_shooter));
+    ths.push_back(std::thread(&RogueTM2::HLEShoot, blue_TM2_shooter));
+	ths.push_back(std::thread(&RogueTMCleaner::HLEClean, TM_cleaner));
+    for (auto& th : ths) {
+        th.join();
     }
 
+	//ths.push_back(std::thread(&Printer,5));
 
     return 0;
 }

@@ -10,6 +10,7 @@
 #include <random>
 
 #define MAX_RETRIES 100
+#define MICROSECOND 1000000
 
 extern Lanes* Gallery;
 
@@ -45,7 +46,7 @@ public:
 	}
 	
 	void shoot() {
-
+		auto start_timer = std::chrono::steady_clock::now();
 		//locally allocate and setup random number generator
 		thread_local std::mt19937 gen((std::random_device())());
 		thread_local std::uniform_int_distribution<int> dist(0,LANE_COUNT-1);
@@ -70,24 +71,32 @@ public:
 
 				if(check == white) {
 					lock->lock();
+					if (Gallery->hasRounds()) {
+						check = Gallery->Get(lane);
 
-					check = Gallery->Get(lane);
+						if(check == white) {
+							//still good so color it
+							check = Gallery->Set(lane, bullet);
 
-					if(check == white) {
-						//still good so color it
-						check = Gallery->Set(lane, bullet);
-
-						if(check == bullet) {
-							success++;
+							if(check == white) {
+								success++;
+							}
 						}
 					}
-
 					lock->unlock();
 				}
 			}
 		}
 		else {
 			std::cerr << "ERROR: Course lock was not set!" << std::endl;
+		}
+		auto end_timer = std::chrono::steady_clock::now();
+		auto elapsed_time = std::chrono::duration_cast<std::chrono::microseconds>(end_timer - start_timer);
+		double success_rate = (double)(success) / ((double)elapsed_time.count() / MICROSECOND);
+		if (bullet == red) {
+			std::cout << "Red Success Rate: " << success_rate << " successful shots per second" << std::endl;
+		} else {
+			std::cout << "Blue Success Rate: " << success_rate << " successful shots per second" << std::endl;
 		}
 	}
 };
@@ -110,6 +119,7 @@ public:
 	}
 	
 	void shoot() {
+		auto start_timer = std::chrono::steady_clock::now();
 		if (barrier != 0) {
 			barrier->barrier();
 		}
@@ -120,11 +130,13 @@ public:
 				Color check = Gallery->Get(lane);
 				if (check == white) {
 					locks[lane].lock();
-					check = Gallery->Get(lane);
-					if (check == white) {
-						check = Gallery->Set(lane, bullet);
-						if (check == bullet) {
-							success++;
+					if (Gallery->hasRounds()) {
+						check = Gallery->Get(lane);
+						if (check == white) {
+							check = Gallery->Set(lane, bullet);
+							if (check == white) {
+								success++;
+							}
 						}
 					}
 					locks[lane].unlock();
@@ -132,6 +144,14 @@ public:
 			}
 		} else {
 			std::cerr << "ERROR: the locks were not set!" << std::endl;
+		}
+		auto end_timer = std::chrono::steady_clock::now();
+		auto elapsed_time = std::chrono::duration_cast<std::chrono::microseconds>(end_timer - start_timer);
+		double success_rate = (double)(success) / ((double)elapsed_time.count() / MICROSECOND);
+		if (bullet == red) {
+			std::cout << "Red Success Rate: " << success_rate << " successful shots per second" << std::endl;
+		} else {
+			std::cout << "Blue Success Rate: " << success_rate << " successful shots per second" << std::endl;
 		}
 	}
 };
@@ -141,7 +161,8 @@ public:
 	/* data */
 	Color bullet; // The bullet color to paint the lane
 	int shotRate; // Rate/s required to shoot the lanes
-	int success; // Rate/s of lanes shot by ROGUE
+	int rtm_success; // Rate/s of lanes shot by ROGUE
+	int hle_success; // Rate/s of lanes shot by ROGUE
 	AtomicLock * fallback_lock;
 	HLELock * hle_lock;
 	AtomicBarrier * barrier;
@@ -149,13 +170,15 @@ public:
 	RogueTM(Color color, int rate, HLELock * _hlelock, AtomicLock * _atomiclock, AtomicBarrier * _barrier) {
 		bullet = color;
 		shotRate = rate;
-		success = 0;
+		rtm_success = 0;
+		hle_success = 0;
 		fallback_lock = _atomiclock;
 		hle_lock = _hlelock;
 		barrier = _barrier;
 	}
 	
 	void RTMShoot() {
+		auto start_timer = std::chrono::steady_clock::now();
 		if (barrier != 0) {
 			barrier->barrier();
 		}
@@ -172,10 +195,10 @@ public:
 						retry = false;
 						if ((status = _xbegin ()) == _XBEGIN_STARTED) {
 							check = Gallery->Get(lane);
-							if (check == white) {
+							if (check == white && Gallery->hasRounds()) {
 								check = Gallery->Set(lane, bullet);
-								if (check == bullet) {
-									success++;
+								if (check == white) {
+									rtm_success++;
 								}
 							}
 							_xend ();
@@ -188,10 +211,10 @@ public:
 						std::cerr << "ERROR: using fallback shoot" << std::endl;
 						fallback_lock->lock();
 						check = Gallery->Get(lane);
-						if (check == white) {
+						if (check == white && Gallery->hasRounds()) {
 							check = Gallery->Set(lane, bullet);
-							if (check == bullet) {
-								success++;
+							if (check == white) {
+								rtm_success++;
 							}
 						}
 						fallback_lock->unlock();
@@ -201,9 +224,18 @@ public:
 		} else {
 			std::cerr << "ERROR: the locks were not set!" << std::endl;
 		}
+		auto end_timer = std::chrono::steady_clock::now();
+		auto elapsed_time = std::chrono::duration_cast<std::chrono::microseconds>(end_timer - start_timer);
+		double success_rate = (double)(rtm_success) / ((double)elapsed_time.count() / MICROSECOND);
+		if (bullet == red) {
+			std::cout << "Red Success Rate: " << success_rate << " successful shots per second" << std::endl;
+		} else {
+			std::cout << "Blue Success Rate: " << success_rate << " successful shots per second" << std::endl;
+		}
 	}
 	
 	void HLEShoot() {
+		auto start_timer = std::chrono::steady_clock::now();
 		if (barrier != 0) {
 			barrier->barrier();
 		}
@@ -215,10 +247,10 @@ public:
 				if (check == white) {
 					hle_lock->lock();
 					check = Gallery->Get(lane);
-					if (check == white) {
+					if (check == white && Gallery->hasRounds()) {
 						check = Gallery->Set(lane, bullet);
-						if (check == bullet) {
-							success++;
+						if (check == white) {
+							hle_success++;
 						}
 					}
 					hle_lock->unlock();
@@ -226,6 +258,14 @@ public:
 			}
 		} else {
 			std::cerr << "ERROR: HLE lock was not set!" << std::endl;
+		}
+		auto end_timer = std::chrono::steady_clock::now();
+		auto elapsed_time = std::chrono::duration_cast<std::chrono::microseconds>(end_timer - start_timer);
+		double success_rate = (double)(hle_success) / ((double)elapsed_time.count() / MICROSECOND);
+		if (bullet == red) {
+			std::cout << "Red Success Rate: " << success_rate << " successful shots per second" << std::endl;
+		} else {
+			std::cout << "Blue Success Rate: " << success_rate << " successful shots per second" << std::endl;
 		}
 	}
 };
@@ -248,7 +288,7 @@ public:
 	}
 	
 	void shoot() {
-
+		auto start_timer = std::chrono::steady_clock::now();
 		//locally allocate and setup random number generator
 		thread_local std::mt19937 gen((std::random_device())());
 		thread_local std::uniform_int_distribution<int> dist(0,LANE_COUNT-1);
@@ -290,15 +330,15 @@ public:
 					check = Gallery->Get(lane);
 					check2 = Gallery->Get(lane2);
 
-					if(check == white && check2 == white) {
+					if(check == white && check2 == white && Gallery->hasRounds()) {
 						//still good so color it
 						check = Gallery->Set(lane, bullet);
 						check2 = Gallery->Set(lane2, bullet);
 
-						if(check == bullet) {
+						if(check == white) {
 							success++;
 						}
-						if(check2 == bullet) {
+						if(check2 == white) {
 							success++;
 						}
 					}
@@ -310,7 +350,16 @@ public:
 		else {
 			std::cerr << "ERROR: Course lock was not set!" << std::endl;
 		}
+		auto end_timer = std::chrono::steady_clock::now();
+		auto elapsed_time = std::chrono::duration_cast<std::chrono::microseconds>(end_timer - start_timer);
+		double success_rate = (double)(success) / ((double)elapsed_time.count() / MICROSECOND);
+		if (bullet == red) {
+			std::cout << "Red Success Rate: " << success_rate << " successful shots per second" << std::endl;
+		} else {
+			std::cout << "Blue Success Rate: " << success_rate << " successful shots per second" << std::endl;
+		}
 	}
+
 };
 
 class RogueFine2 {
@@ -331,6 +380,7 @@ public:
 	}
 	
 	void shoot() {
+		auto start_timer = std::chrono::steady_clock::now();
 		if (barrier != 0) {
 			barrier->barrier();
 		}
@@ -354,13 +404,13 @@ public:
 					locks[lane2].lock();
 					check1 = Gallery->Get(lane1);
 					check2 = Gallery->Get(lane2);
-					if (check1 == white && check2 == white) {
+					if (check1 == white && check2 == white && Gallery->hasRounds()) {
 						check1 = Gallery->Set(lane1, bullet);
 						check2 = Gallery->Set(lane2, bullet);
-						if (check1 == bullet) {
+						if (check1 == white) {
 							success++;
 						}
-						if (check2 == bullet) {
+						if (check2 == white) {
 							success++;
 						}
 					}
@@ -371,6 +421,14 @@ public:
 		} else {
 			std::cerr << "ERROR: the locks were not set!" << std::endl;
 		}
+		auto end_timer = std::chrono::steady_clock::now();
+		auto elapsed_time = std::chrono::duration_cast<std::chrono::microseconds>(end_timer - start_timer);
+		double success_rate = (double)(success) / ((double)elapsed_time.count() / MICROSECOND);
+		if (bullet == red) {
+			std::cout << "Red Success Rate: " << success_rate << " successful shots per second" <<  std::endl;
+		} else {
+			std::cout << "Blue Success Rate: " << success_rate << " successful shots per second" << std::endl;
+		}
 	}
 };
 
@@ -379,7 +437,8 @@ public:
 	/* data */
 	Color bullet; // The bullet color to paint the lane
 	int shotRate; // Rate/s required to shoot the lanes
-	int success; // Rate/s of lanes shot by ROGUE
+	int rtm_success; // Rate/s of lanes shot by ROGUE
+	int hle_success; // Rate/s of lanes shot by ROGUE
 	AtomicLock * fallback_lock;
 	HLELock * hle_lock;
 	AtomicBarrier * barrier;
@@ -387,13 +446,15 @@ public:
 	RogueTM2(Color color, int rate, HLELock * _hlelock, AtomicLock * _atomiclock, AtomicBarrier * _barrier) {
 		bullet = color;
 		shotRate = rate;
-		success = 0;
+		rtm_success = 0;
+		hle_success = 0;
 		fallback_lock = _atomiclock;
 		hle_lock = _hlelock;
 		barrier = _barrier;
 	}
 	
 	void RTMShoot() {
+		auto start_timer = std::chrono::steady_clock::now();
 		if (barrier != 0) {
 			barrier->barrier();
 		}
@@ -418,17 +479,19 @@ public:
 					int status = 0;
 					do {
 						retry = false;
+						check1 = violet;
+						check2 - violet;
 						if ((status = _xbegin ()) == _XBEGIN_STARTED) {
 							check1 = Gallery->Get(lane1);
 							check2 = Gallery->Get(lane2);
-							if (check1 == white && check2 == white) {
+							if (check1 == white && check2 == white && Gallery->hasRounds()) {
 								check1 = Gallery->Set(lane1, bullet);
 								check2 = Gallery->Set(lane2, bullet);
-								if (check1 == bullet) {
-									success++;
+								if (check1 == white) {
+									rtm_success++;
 								}
-								if (check2 == bullet) {
-									success++;
+								if (check2 == white) {
+									rtm_success++;
 								}
 							}
 							_xend ();
@@ -442,14 +505,14 @@ public:
 						fallback_lock->lock();
 						check1 = Gallery->Get(lane1);
 						check2 = Gallery->Get(lane2);
-						if (check1 == white && check2 == white) {
+						if (check1 == white && check2 == white && Gallery->hasRounds()) {
 							check1 = Gallery->Set(lane1, bullet);
 							check2 = Gallery->Set(lane2, bullet);
-							if (check1 == bullet) {
-								success++;
+							if (check1 == white) {
+								rtm_success++;
 							}
-							if (check2 == bullet) {
-								success++;
+							if (check2 == white) {
+								rtm_success++;
 							}
 						}
 						fallback_lock->unlock();
@@ -459,9 +522,18 @@ public:
 		} else {
 			std::cerr << "ERROR: the locks were not set!" << std::endl;
 		}
+		auto end_timer = std::chrono::steady_clock::now();
+		auto elapsed_time = std::chrono::duration_cast<std::chrono::microseconds>(end_timer - start_timer);
+		double success_rate = (double)(rtm_success) / ((double)elapsed_time.count() / MICROSECOND);
+		if (bullet == red) {
+			std::cout << "Red Success Rate: " << success_rate << " successful shots per second" << std::endl;
+		} else {
+			std::cout << "Blue Success Rate: " << success_rate << " successful shots per second" << std::endl;
+		}
 	}
 	
 	void HLEShoot() {
+		auto start_timer = std::chrono::steady_clock::now();
 		if (barrier != 0) {
 			barrier->barrier();
 		}
@@ -484,14 +556,14 @@ public:
 					hle_lock->lock();
 					check1 = Gallery->Get(lane1);
 					check2 = Gallery->Get(lane2);
-					if (check1 == white && check2 == white) {
+					if (check1 == white && check2 == white && Gallery->hasRounds()) {
 						check1 = Gallery->Set(lane1, bullet);
 						check2 = Gallery->Set(lane2, bullet);
-						if (check1 == bullet) {
-							success++;
+						if (check1 == white) {
+							hle_success++;
 						}
-						if (check2 == bullet) {
-							success++;
+						if (check2 == white) {
+							hle_success++;
 						}
 					}
 					hle_lock->unlock();
@@ -499,6 +571,14 @@ public:
 			}
 		} else {
 			std::cerr << "ERROR: HLE lock was not set!" << std::endl;
+		}
+		auto end_timer = std::chrono::steady_clock::now();
+		auto elapsed_time = std::chrono::duration_cast<std::chrono::microseconds>(end_timer - start_timer);
+		double success_rate = (double)(hle_success) / ((double)elapsed_time.count() / MICROSECOND);
+		if (bullet == red) {
+			std::cout << "Red Success Rate: " << success_rate << " successful shots per second"  << std::endl;
+		} else {
+			std::cout << "Blue Success Rate: " << success_rate << " successful shots per second"  << std::endl;
 		}
 	}
 };
