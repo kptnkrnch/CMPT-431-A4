@@ -108,6 +108,9 @@ std::vector<thread> ths;
     int blue_rate = atoi(argv[2]);
 
     //    std::thread RedShooterT,BlueShooterT,CleanerT,PrinterT;
+	
+	Rogue red_unprotected(red, red_rate, &barrier);
+	Rogue blue_unprotected(blue, blue_rate, &barrier);
 
 	RogueCoarse red_coarse_shooter(red, red_rate, lock, &barrier); 
 	RogueCoarse blue_coarse_shooter(blue, blue_rate, lock, &barrier);
@@ -134,6 +137,18 @@ std::vector<thread> ths;
     //ths.push_back(std::thread(&ShooterAction,49,red));
     //ths.push_back(std::thread(&ShooterAction,50,blue));
     //ths.push_back(std::thread(&Cleaner));
+	
+	#ifdef TRYRACE
+		cout << "Running Rogue Unprotected (single shot):" << endl;
+		ths.push_back(std::thread(&Rogue::shoot, red_unprotected));
+		ths.push_back(std::thread(&Rogue::shoot, blue_unprotected));
+		ths.push_back(std::thread(&RogueCoarseCleaner::clean, cleaner));
+		for (auto& th : ths) {
+			th.join();
+		}
+		Gallery->reset();
+		ths.clear();
+	#endif
 	
 	cout << "Running RogueCoarse (single shot):" << endl;
 	ths.push_back(std::thread(&RogueCoarse::shoot, red_coarse_shooter));

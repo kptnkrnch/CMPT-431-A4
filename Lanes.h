@@ -227,7 +227,12 @@ void Lanes::Print()
 }
 
 void Lanes::reset() {
-	Clear();
+	for (int i = 0; i < nlanes; ++i)
+	{
+		lanes[i] = white;
+	}
+	has_violet = false;
+	dirty_lanes = 0;
 	rounds = max_rounds;
 }
 
