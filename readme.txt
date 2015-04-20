@@ -21,3 +21,12 @@ Who did what?
 		- Thread creation and framework for main function in Shooter.cpp
 	
 	Adam Penner (adpenner):
+		- hasRounds method in Lanes.h
+		- allDirty method in Lanes.h
+		- hasViolet method in Lanes.h
+		- usage of thread safe random generator in rogue.h
+		- RogueCourse in rogue.h
+		- RogueCourse2 in rogue.h
+		- RogueCourseCleaner in rogue.h
+		- RogueTMCleaner (both RTMClean and HLEClean) in rogue.h
+		
